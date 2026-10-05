@@ -37,7 +37,7 @@ Zed配置文件如下：
 }
 ```
 
-.zed/tasks.json
+.zed/tasks.json，需要修改-DCMAKE_TOOLCHAIN_FILE这一行，改为自己的VCPKG路径
 
 ```
 [
