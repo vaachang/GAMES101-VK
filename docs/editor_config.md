@@ -51,8 +51,7 @@ Zed配置文件如下：
       "$ZED_DIRNAME",
       "-B",
       "$ZED_DIRNAME/build",
-      "-DCMAKE_TOOLCHAIN_FILE",
-      "$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
+      "-DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
     ],
     "use_new_terminal": false,
     "allow_concurrent_runs": false,
