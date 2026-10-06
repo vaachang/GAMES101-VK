@@ -122,3 +122,12 @@ add_dependencies(${TEMPLATE_NAME} ${SHADER_TARGET})
 set (ASSET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/AssetsL/")
 file (COPY ${ASSET_DIR}/viking_room.obj DESTINATION ${TEMPLATE_DIR}/models)
 file (COPY ${ASSET_DIR}/viking_room.png DESTINATION ${TEMPLATE_DIR}/textures)
+
+# Eigen lib
+add_library(Eigen3::Eigen INTERFACE IMPORTED)
+set_target_properties(Eigen3::Eigen PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/third_party/eigen"
+)
+
+# Subdirectory
+add_subdirectory(PA0)
