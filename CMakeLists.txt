@@ -131,3 +131,4 @@ set_target_properties(Eigen3::Eigen PROPERTIES
 
 # Subdirectory
 add_subdirectory(PA0)
+add_subdirectory(PA1)
