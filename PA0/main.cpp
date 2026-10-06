@@ -3,7 +3,7 @@
 #include<Eigen/Dense>
 #include<iostream>
 
-int main(){
+int exercise(){
 
     // Basic Example of cpp
     std::cout << "Example of cpp \n";
@@ -44,5 +44,22 @@ int main(){
     // matrix multiply i * j
     // matrix multiply vector i * v
 
+    return 0;
+}
+
+int main(){
+    double d45 = std::acos(-1) / 4;
+    double cos45 = std::cos(d45);
+    double sin45 = std::sin(d45);
+    Eigen::Matrix3f r45,t12;
+    r45 << cos45, -sin45, 0,
+           sin45,  cos45, 0,
+               0,      0, 1;
+    t12 << 1, 0, 1,
+           0, 1, 2,
+           0, 0, 1;
+    Eigen::Vector3f startP(2.0f,1.0f,1.0f);
+    Eigen::Vector3f endP = t12 * r45 * startP;
+    std::cout<< endP << std::endl;
     return 0;
 }
