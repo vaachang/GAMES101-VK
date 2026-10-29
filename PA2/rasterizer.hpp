@@ -5,8 +5,6 @@
 #pragma once
 
 #include <Eigen/Eigen>
-#include <algorithm>
-#include "global.hpp"
 #include "Triangle.hpp"
 using namespace Eigen;
 

@@ -40,20 +40,22 @@ auto to_vec4(const Eigen::Vector3f& v3, float w = 1.0f)
 }
 
 
-static bool insideTriangle(int x, int y, const Vector3f* _v)
+static bool insideTriangle(float x, float y, const Vector3f* _v)
 {
     // TODO : Implement this function to check if the point (x, y) is inside the triangle represented by _v[0], _v[1], _v[2]
-    Vector3f P(x+0.5f,y+0.5f,0.0f);
-
-    auto cross2 = [](const Vector3f& a, const Vector3f& b){
-        return a.x() * b.y() - a.y() * b.x();
+    auto edge = [](const Vector3f& a, const Vector3f& b, float px, float py) {
+        return (b.x() - a.x()) * (py - a.y()) - (b.y() - a.y()) * (px - a.x());
     };
 
-    float c1 = cross2(_v[1] - _v[0], P -_v[0]);
-    float c2 = cross2(_v[2] - _v[1], P -_v[1]);
-    float c3 = cross2(_v[0] - _v[2], P -_v[2]);
+    float c1 = edge(_v[0], _v[1], x, y);
+    float c2 = edge(_v[1], _v[2], x, y);
+    float c3 = edge(_v[2], _v[0], x, y);
 
-    return (c1 >=0 && c2 >=0 && c3 >=0) || (c1 <= 0 && c2 <=0 && c3 <=0);
+    bool has_neg = (c1 < 0) || (c2 < 0) || (c3 < 0);
+    bool has_pos = (c1 > 0) || (c2 > 0) || (c3 > 0);
+
+    // 三个叉积同号或为 0，说明点在三角形内或边上
+    return !(has_neg && has_pos);
 }
 
 static std::tuple<float, float, float> computeBarycentric2D(float x, float y, const Vector3f* v)
@@ -127,30 +129,62 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     //z_interpolated *= w_reciprocal;
 
     // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
-    float xl = std::min(std::min(v[0].x(), v[1].x()), v[2].x());
-    float yb = std::min(std::min(v[0].y(), v[1].y()), v[2].y());
-    float xr = std::max(std::max(v[0].x(), v[1].x()), v[2].x());
-    float yt = std::max(std::max(v[0].y(), v[1].y()), v[2].y());
+    // 1. 计算二维 bounding box
+    float min_x_f = std::min({v[0].x(), v[1].x(), v[2].x()});
+    float max_x_f = std::max({v[0].x(), v[1].x(), v[2].x()});
+    float min_y_f = std::min({v[0].y(), v[1].y(), v[2].y()});
+    float max_y_f = std::max({v[0].y(), v[1].y(), v[2].y()});
 
-    std::cout << xl << " " << xr << " " << yb << " " << yt << std::endl;
+    int min_x = static_cast<int>(std::floor(min_x_f));
+    int max_x = static_cast<int>(std::ceil(max_x_f));
+    int min_y = static_cast<int>(std::floor(min_y_f));
+    int max_y = static_cast<int>(std::ceil(max_y_f));
 
-    for(int i=(int)xl;i<(int)xr +1;i++){
-        for(int j=(int)yb;j<(int)yt +1;j++){
-            int idx = get_index(i, j);
-            float x = i+0.5;
-            float y = j+0.5;
-            if(insideTriangle(x,y,t.v)){
-                auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
-                float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
-                float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
-                z_interpolated *= w_reciprocal;
-                if(z_interpolated <= depth_buf[idx]){
-                    frame_buf[idx] = t.getColor();
-                    depth_buf[idx] = z_interpolated;
-                }
+    // 限制到屏幕范围内
+    min_x = std::max(0, min_x);
+    max_x = std::min(width - 1, max_x);
+    min_y = std::max(0, min_y);
+    max_y = std::min(height - 1, max_y);
 
+    // 2. 遍历 bounding box 内所有像素
+    for (int y = min_y; y <= max_y; ++y) {
+        for (int x = min_x; x <= max_x; ++x) {
+            // 使用像素中心进行判断
+            float px = x + 0.5f;
+            float py = y + 0.5f;
+
+            if (!insideTriangle(px, py, t.v)) {
+                continue;
             }
 
+            // 3. 计算重心坐标并插值深度
+            auto [alpha, beta, gamma] = computeBarycentric2D(px, py, t.v);
+
+            float w_reciprocal = 1.0f / (
+                alpha / v[0].w() +
+                beta  / v[1].w() +
+                gamma / v[2].w()
+            );
+
+            float z_interpolated =
+                alpha * v[0].z() / v[0].w() +
+                beta  * v[1].z() / v[1].w() +
+                gamma * v[2].z() / v[2].w();
+
+            z_interpolated *= w_reciprocal;
+
+            // 4. 深度测试
+            int index = get_index(x, y);
+            if (z_interpolated < depth_buf[index]) {
+                Eigen::Vector3f point(
+                    static_cast<float>(x),
+                    static_cast<float>(y),
+                    z_interpolated
+                );
+
+                set_pixel(point, t.getColor());
+                depth_buf[index] = z_interpolated;
+            }
         }
     }
 }
